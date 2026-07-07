@@ -1,0 +1,65 @@
+import pygame
+import config as cfg
+from game import Game
+from snake import Snake
+
+class UI:
+    def __init__(self, screen, game):
+        self.screen = screen
+        self.game = game
+        self.snake = self.game.snake
+        self.snake_representation = []
+        self.update_snake_representation()
+        self.game_window = pygame.Rect(5, 5, 930, 890)
+        self.food = pygame.Rect(0, 0, cfg.SNAKE_SIZE, cfg.SNAKE_SIZE)
+        
+        
+        #self.game_window = pygame.draw.rect(self.screen, self.snake.head_color, self.snake_head, width=3)
+
+    # Creates the missing rectangles for self.snake_representation to match length of self.snake.body
+    def update_snake_representation(self):
+        for i in range(len(self.snake_representation), len(self.snake.body)):
+            x_position = self.snake.body[i][0]
+            y_position = self.snake.body[i][1]
+            self.snake_representation.append(pygame.Rect(x_position, y_position, cfg.SNAKE_SIZE, cfg.SNAKE_SIZE))
+    
+    def update_snake_position(self):
+        for i in range(len(self.snake_representation)):
+            self.snake_representation[i].center = (self.snake.body[i][0], self.snake.body[i][1])
+    
+    def update_food_position(self):
+        self.food.center = (self.game.food[0], self.game.food[1])
+
+    def draw(self):
+
+        self.screen.fill((0, 0, 0))
+        self.update_snake_position()
+        self.update_food_position()
+        self.update_snake_representation()
+
+        # Draw game window
+        pygame.draw.rect(self.screen, (255, 255, 255), self.game_window, width=3)
+        
+        # Draw Snake
+        pygame.draw.rect(self.screen, self.snake.head_color, self.snake_representation[0], width = 0)
+        for i in range(1, len(self.snake_representation)):
+            pygame.draw.rect(self.screen, self.snake.body_color, self.snake_representation[i], width = 0)
+
+        # Draw food
+        pygame.draw.rect(self.screen, (0, 255, 0), self.food, width = 0)
+
+    
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                self.snake.change_direction("up")
+                self.game.update_game()
+            elif event.key == pygame.K_s:
+                self.snake.change_direction("down")
+                self.game.update_game()
+            elif event.key == pygame.K_d:
+                self.snake.change_direction("right")
+                self.game.update_game()
+            elif event.key == pygame.K_a:
+                self.snake.change_direction("left")
+                self.game.update_game()
