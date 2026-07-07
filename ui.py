@@ -11,7 +11,11 @@ class UI:
         self.update_snake_representation()
         self.game_window = pygame.Rect(5, 5, 930, 890)
         self.food = pygame.Rect(0, 0, cfg.SNAKE_SIZE, cfg.SNAKE_SIZE)
-        
+
+        self.green = (0, 255, 0)
+        self.black = (0, 0, 0)
+        self.white = (255, 255, 255)
+        self.red = (255, 0, 0)
 
     # Creates the missing rectangles for self.snake_representation to match length of self.snake.body
     def update_snake_representation(self):
@@ -35,17 +39,17 @@ class UI:
         self.update_snake_position()
         self.update_food_position()
         
-        self.screen.fill((0, 0, 0))
+        self.screen.fill(self.black)
         # Draw game window
-        pygame.draw.rect(self.screen, (255, 255, 255), self.game_window, width=3)
+        pygame.draw.rect(self.screen, self.white, self.game_window, width=3)
         
         # Draw Snake
-        pygame.draw.rect(self.screen, self.game.snake.head_color, self.snake_representation[0], width = 0)
+        pygame.draw.rect(self.screen, self.red, self.snake_representation[0], width = 0)
         for i in range(1, len(self.snake_representation)):
-            pygame.draw.rect(self.screen, self.game.snake.body_color, self.snake_representation[i], width = 0)
+            pygame.draw.rect(self.screen, self.white, self.snake_representation[i], width = 0)
 
         # Draw food
-        pygame.draw.rect(self.screen, (0, 255, 0), self.food, width = 0)
+        pygame.draw.rect(self.screen, self.green, self.food, width = 0)
 
     
     def handle_event(self, event):

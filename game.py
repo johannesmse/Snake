@@ -24,7 +24,7 @@ class Game:
             
         return False
     
-    def handle_food_eaten(self, snake):
+    def handle_food_eaten(self):
         self.snake.add_body_parts(1)
         self.food = [cfg.SNAKE_SIZE * random.randint(1, 46), cfg.SNAKE_SIZE * random.randint(1, 44)]
     
@@ -41,4 +41,4 @@ class Game:
             self.reset_snake()
         
         elif self.inside_food(self.snake.body[0][0], self.snake.body[0][1]):
-            self.handle_food_eaten(self.snake)
+            self.handle_food_eaten()

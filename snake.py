@@ -2,11 +2,9 @@ import config as cfg
 
 class Snake:
     def __init__(self):
-        self.head_color = (255, 0, 0)
-        self.body_color = (230, 230, 230)
         self.direction = "right"
         self.body = [[400, 400]]
-        self.add_body_parts(15)
+        self.add_body_parts(4)
 
     def add_body_parts(self, n):
 
