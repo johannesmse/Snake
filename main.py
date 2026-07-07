@@ -15,7 +15,6 @@ running = True
 game_update_timer = 0
 while running:
     for event in pygame.event.get():
-
         if event.type == pygame.QUIT:
             running = False
         else:
@@ -27,11 +26,10 @@ while running:
     else:
         game_update_timer += 1
 
-    
     game_ui.draw()
     pygame.display.flip()
 
-    clock.tick(120)
+    clock.tick(60)
 
 
 pygame.quit()

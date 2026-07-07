@@ -5,8 +5,8 @@ class Snake:
         self.head_color = (255, 0, 0)
         self.body_color = (230, 230, 230)
         self.direction = "right"
-        self.body = [[140, 100]]
-        self.add_body_parts(2)
+        self.body = [[400, 400]]
+        self.add_body_parts(15)
 
     def add_body_parts(self, n):
 
@@ -27,6 +27,9 @@ class Snake:
     def change_direction(self, direction):
         if direction in cfg.VALID_TURNS[self.direction]:
             self.direction = direction
+            return True
+        
+        return False
     
     def move(self):
         for i in range(len(self.body) - 1, 0, -1):
