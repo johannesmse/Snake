@@ -2,17 +2,20 @@ import pygame
 import config as cfg
 from ui import UI
 from game import Game
+from agent import Agent
 
 pygame.init()
 pygame.display.set_caption("Snake")
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((cfg.WINDOW_WIDTH, cfg.WINDOW_HEIGHT))
 game = Game()
-game_ui = UI(screen, game, None)
+agent = Agent(game)
+game_ui = UI(screen, game, agent)
+
+game_ui.draw()
+pygame.display.flip()
+
 running = True
-
-
-game_update_timer = 0
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -20,16 +23,21 @@ while running:
         else:
             game_ui.handle_event(event)
     
-    if game_update_timer == 4:
-        game.update_game()
-        game_update_timer = 0
+    if game.done:
+        game.reset_game()
+        agent.update_snake()
     else:
-        game_update_timer += 1
+        agent.step()
+    
+    if game_ui.display_setting is not None:
+        game_ui.draw()
+        
+        if game_ui.display_setting > 0:
+            clock.tick(game_ui.display_setting)
+    else:
+        game_ui.draw_menu()
 
-    game_ui.draw()
     pygame.display.flip()
-
-    clock.tick(60)
 
 
 pygame.quit()

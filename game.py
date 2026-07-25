@@ -1,44 +1,84 @@
 import config as cfg
 from snake import Snake
 import random
+from collections import deque
 
 class Game:
     def __init__(self):
-        self.snake = Snake()
-        self.game_window_edges = [5, 935, 5, 895]
-        self.food = [cfg.SNAKE_SIZE * random.randint(1, 46), cfg.SNAKE_SIZE * random.randint(1, 44)]
+        self.snake = Snake(self.start_position(cfg.GAME_WINDOW_WIDTH), self.start_position(cfg.GAME_WINDOW_HEIGHT), "right")
+        self.food = self.preset_food_position()
+        self.done = False
+        self.score = 0
+        self.high_score = 0
+        
+        self.last_20_scores = deque(maxlen=20)
+        self.average_score = 0
     
-    def outside_game_window(self, x, y):
-        return x < self.game_window_edges[0] or x > self.game_window_edges[1] or y < self.game_window_edges[2] or y > self.game_window_edges[3]  
-    
-    def inside_food(self, x, y):
-        return x == self.food[0] and y == self.food[1]
-    
-    def inside_itself(self):
-        head_x = self.snake.body[0][0]
-        head_y = self.snake.body[0][1]
+    def outside_game_window(self, snake):
+        head_x, head_y = snake.head
 
-        for i in range(1, len(self.snake.body)):
-            if head_x == self.snake.body[i][0] and head_y == self.snake.body[i][1]:
-                return True
-            
-        return False
+        return head_x < 0 or head_x > cfg.GAME_WINDOW_WIDTH - cfg.SNAKE_SIZE or head_y < 0 or head_y > cfg.GAME_WINDOW_HEIGHT - cfg.SNAKE_SIZE
     
-    def handle_food_eaten(self):
-        self.snake.add_body_parts(1)
-        self.food = [cfg.SNAKE_SIZE * random.randint(1, 46), cfg.SNAKE_SIZE * random.randint(1, 44)]
+    def inside_food(self, snake):
+        return snake.head == self.food
     
-    def handle_change_direction(self, direction):
-        if self.snake.change_direction(direction):
-            self.update_game()
+    def handle_food_eaten(self, snake):
+        snake.add_body_parts(1)
+        self.score += 1
+        self.food = self.preset_food_position()
 
     def reset_snake(self):
-        self.snake = Snake()
+        self.snake = Snake(self.start_position(cfg.GAME_WINDOW_WIDTH), self.start_position(cfg.GAME_WINDOW_HEIGHT), "right")
+
+    def random_food_position(self):
+        return [self.random_grid_coordinate(cfg.GAME_WINDOW_WIDTH), self.random_grid_coordinate(cfg.GAME_WINDOW_HEIGHT)]
+
+    def preset_food_position(self):
+        center_x = (cfg.GAME_WINDOW_WIDTH // (2 * cfg.SNAKE_SIZE)) * cfg.SNAKE_SIZE
+        center_y = (cfg.GAME_WINDOW_HEIGHT // (2 * cfg.SNAKE_SIZE)) * cfg.SNAKE_SIZE
+        offset = 2 * cfg.SNAKE_SIZE
+
+        positions = [
+            [center_x - offset, center_y - offset],  # Up-left
+            [center_x + offset, center_y - offset],  # Up-right
+            [center_x - offset, center_y + offset],  # Down-left
+            [center_x + offset, center_y + offset]   # Down-right
+        ]
+
+        return random.choice(positions)
+
 
     def update_game(self):
-        self.snake.move()
-        if self.outside_game_window(self.snake.body[0][0], self.snake.body[0][1]) or self.inside_itself():
-            self.reset_snake()
+        if self.done:
+            print("Game is finished. Not updating game state.")
+            return
         
-        elif self.inside_food(self.snake.body[0][0], self.snake.body[0][1]):
-            self.handle_food_eaten()
+        # Reward for RL agent
+        self.reward = -0.1
+
+        self.snake.move()
+        
+        if self.outside_game_window(self.snake) or self.snake.inside_itself():
+            self.reward = -5
+            self.done = True
+            if self.score > self.high_score:
+                self.high_score = self.score
+
+        elif self.inside_food(self.snake):
+            self.reward = 10
+            self.handle_food_eaten(self.snake)
+    
+    def reset_game(self):
+        self.reset_snake()
+        self.food = self.preset_food_position()
+        self.done = False
+        self.last_20_scores.append(self.score)
+        self.average_score = sum(self.last_20_scores) / len(self.last_20_scores)
+        self.score = 0
+
+    # Helper method to get a random grid coordinate
+    def random_grid_coordinate(self, grid_size):
+        return cfg.SNAKE_SIZE * random.randint(0, int((grid_size / cfg.SNAKE_SIZE)) - 1)
+    
+    def start_position(self, grid_size):
+        return cfg.SNAKE_SIZE * int((grid_size / cfg.SNAKE_SIZE) / 2)
