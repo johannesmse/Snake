@@ -4,22 +4,24 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import config as cfg
 from game import Game
 from snake import Snake
-import random
 import torch
 import torch.nn as nn
+import random
+import copy
+from collections import deque
 
 class SnakeNet(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
         self.network = nn.Sequential(
-            nn.Linear(input_size, 256),
+            nn.Linear(input_size, 256), # Hidden layer 1
             nn.ReLU(),
 
-            nn.Linear(256, 128),
+            nn.Linear(256, 128), # Hidden layer 2
             nn.ReLU(),
 
-            nn.Linear(128, output_size)
+            nn.Linear(128, output_size) # Output layer
         )
     
     def forward(self, x):
@@ -37,8 +39,8 @@ class Agent:
         self.discount_factor = 0.99
         self.learning_rate = 0.0003
         self.epsilon = 1
-        self.epsilon_decay = 0.999995
-        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.99998
+        self.epsilon_min = 0
         self.generation = 0
         self.steps = 0
 
@@ -46,6 +48,8 @@ class Agent:
         self.input_size = 4 + (self.rows * self.columns * self.number_of_input_channels)
 
         self.model = SnakeNet(self.input_size, self.output_size)
+        self.target_model = copy.deepcopy(self.model)
+
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.loss_function = nn.SmoothL1Loss()
 
@@ -139,9 +143,7 @@ class Agent:
         reward = self.game.reward
         done = self.game.done
 
-
-        # Get state after action
-        # Update epsilon to reduce exploration
+        # Get new state if game is not over
         if done:
             next_state = None
             self.generation += 1
@@ -150,10 +152,16 @@ class Agent:
 
         self.train(action, q_values, reward, next_state, done)
 
-        if self.steps == 300000:
-            self.epsilon_min = 0
-
+        # Update epsilon to reduce exploration
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+        # Update target network every 2000 steps
+        if self.steps % 2000 == 0:
+            self.target_model.load_state_dict(self.model.state_dict())
+
+        if self.steps % 100000 == 0:
+            print(f"Steps: {self.steps:,}")
+            self.game.print_scores()
         
     
     def train(self, action, q_values, reward, next_state, done):
@@ -165,7 +173,7 @@ class Agent:
             next_state = torch.tensor(next_state, dtype=torch.float32)
 
             with torch.no_grad():
-                next_q_values = self.model(next_state)
+                next_q_values = self.target_model(next_state)
                 target = reward + self.discount_factor * torch.max(next_q_values).item()
 
         # Copy current Q-values

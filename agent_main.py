@@ -3,6 +3,7 @@ import config as cfg
 from ui import UI
 from game import Game
 from agent import Agent
+import time
 
 pygame.init()
 pygame.display.set_caption("Snake")
@@ -15,29 +16,38 @@ game_ui = UI(screen, game, agent)
 game_ui.draw()
 pygame.display.flip()
 
+last_menu_update = time.time()
+
 running = True
 while running:
+
+    # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         else:
             game_ui.handle_event(event)
-    
+
+    # Train agent
     if game.done:
         game.reset_game()
         agent.update_snake()
     else:
         agent.step()
-    
+
+    # Display snake and menu
     if game_ui.display_setting is not None:
         game_ui.draw()
+        pygame.display.flip()
         
         if game_ui.display_setting > 0:
             clock.tick(game_ui.display_setting)
-    else:
-        game_ui.draw_menu()
 
-    pygame.display.flip()
+    # Only display menu, update every 0.5 sec to reduce overhead
+    elif time.time() - last_menu_update >= 0.5:
+        game_ui.draw_menu()
+        pygame.display.flip()
+        last_menu_update = time.time()
 
 
 pygame.quit()

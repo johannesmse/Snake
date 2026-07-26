@@ -61,20 +61,25 @@ class UI:
         pygame.draw.rect(self.screen, self.grey, self.game_window)
 
         self.draw_menu()
+        self.draw_snake_and_food()
 
-        self.draw_snake()
+    def draw_snake_and_food(self):
+        self.draw_body()
         self.draw_food()
-
-    def draw_snake(self):
+        self.draw_head()
+        
+    def draw_head(self):
         # Draw head
         pygame.draw.rect(self.screen, self.red, self.snake_representation[0])
 
+    def draw_body(self):
         # Draw body
         for i in range(1, len(self.snake_representation) - 1):
             pygame.draw.rect(self.screen, self.white, self.snake_representation[i])
 
         # Draw tail
         pygame.draw.rect(self.screen, self.black, self.snake_representation[-1])
+
 
     def draw_food(self):
         pygame.draw.rect(self.screen, self.green, self.food)
@@ -84,8 +89,8 @@ class UI:
             case None:
                 self.display_setting = 0
             case 0:
-                self.display_setting = 20
-            case 20:
+                self.display_setting = 10
+            case 10:
                 self.display_setting = None
 
 

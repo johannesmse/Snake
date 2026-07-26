@@ -46,7 +46,8 @@ class Snake:
         if direction in cfg.VALID_TURNS[self.direction]:
             self.direction = direction
             return True
-        
+
+        print("Invalid direction")
         return False
     
     def inside_itself(self):
