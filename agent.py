@@ -41,6 +41,11 @@ class Agent:
         self.epsilon = 1
         self.epsilon_decay = 0.99998
         self.epsilon_min = 0
+
+        self.replay_buffer = deque(maxlen=50_000)
+        self.replay_batch_size = 64
+        self.training_freq = 4
+
         self.generation = 0
         self.steps = 0
 
@@ -51,7 +56,7 @@ class Agent:
         self.target_model = copy.deepcopy(self.model)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.loss_function = nn.SmoothL1Loss()
+        self.loss_function = nn.MSELoss()
 
 
         self.action_map = {
@@ -98,22 +103,21 @@ class Agent:
         return direction + head_channel + body_channel + tail_channel + food_channel
     
     def get_action_epsilon_greedy(self, state):
-        state = torch.tensor(state, dtype=torch.float32)
-        q_values = self.model(state)
-
         if random.random() > self.epsilon:
-            action = torch.argmax(q_values).item()
-        else:
-            action = random.randrange(3)
+            # Return optimal action
+            state = torch.tensor(state, dtype=torch.float32)
+            q_values = self.model(state)
 
-        return action, q_values
+            return torch.argmax(q_values).item()
+        else:
+            # Return random action
+            return random.randrange(3)
 
     def get_action_optimal(self, state):
         state = torch.tensor(state, dtype=torch.float32)
         q_values = self.model(state)
-        action = torch.argmax(q_values).item()
 
-        return action, q_values
+        return torch.argmax(q_values).item()
 
 
     def perform_action(self, action):
@@ -133,7 +137,7 @@ class Agent:
         state = self.get_current_state()
 
         # Choose and perform action
-        action, q_values = self.get_action_epsilon_greedy(state)
+        action = self.get_action_epsilon_greedy(state)
         self.perform_action(action)
 
         # Advance game one step
@@ -150,7 +154,11 @@ class Agent:
         else:
             next_state = self.get_current_state()
 
-        self.train(action, q_values, reward, next_state, done)
+        # Add experience to replay buffer
+        self.replay_buffer.append((state, action, reward, next_state))
+
+        if self.steps % self.training_freq == 0:
+            self.train()
 
         # Update epsilon to reduce exploration
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
@@ -159,36 +167,95 @@ class Agent:
         if self.steps % 2000 == 0:
             self.target_model.load_state_dict(self.model.state_dict())
 
+        # Print scores in terminal
         if self.steps % 100000 == 0:
             print(f"Steps: {self.steps:,}")
             self.game.print_scores()
         
+
     
-    def train(self, action, q_values, reward, next_state, done):
-        # Calculate target Q-value
-        if done:
-            target = reward
-        else:
-            # Convert next_state to tensors
-            next_state = torch.tensor(next_state, dtype=torch.float32)
+    def train(self):
+        """
+        Experience replay batch training
+        Does one forward pass each for online network and target network,
+        one backward pass and one Adam update per train() call with buffer of batch_size.
 
-            with torch.no_grad():
-                next_q_values = self.target_model(next_state)
-                target = reward + self.discount_factor * torch.max(next_q_values).item()
+        Compared to old train method that did batch_size number of forward passes, backward passes
+        and weight updates.
+        """
 
-        # Copy current Q-values
+        if len(self.replay_buffer) < self.replay_batch_size:
+            return
+
+        # Sample replay batch
+        batch = random.sample(self.replay_buffer, self.replay_batch_size)
+        states, actions, rewards, next_states = zip(*batch)
+        
+        # Remove None elements from next_states
+        filtered_next_states = [next_state for next_state in next_states if next_state is not None]
+
+        states = torch.tensor(states, dtype=torch.float32)
+        filtered_next_states = torch.tensor(filtered_next_states, dtype=torch.float32)
+
+        # Gets q_values from online and target network
+        q_values = self.model(states)
+        with torch.no_grad():
+            next_states_q_values = self.target_model(filtered_next_states)
+
+        
         target_q_values = q_values.clone().detach()
 
-        # Replace the Q-value for the action we actually took
-        target_q_values[action] = target
+        filtered_next_states_index = 0
+        for i, (action, reward, next_state) in enumerate(zip(actions, rewards, next_states)):
+            if next_state is None:
+                target = reward
+            else:
+                target = reward + self.discount_factor * torch.max(next_states_q_values[filtered_next_states_index]).item()
+                filtered_next_states_index += 1
 
-        # Calculate loss
-        loss = self.loss_function(q_values, target_q_values)
+            target_q_values[i][action] = target
 
-        # Update model
+        # Clear old gradients
         self.optimizer.zero_grad()
+
+        # Calculate loss and update model
+        loss = self.loss_function(q_values, target_q_values)
         loss.backward()
         self.optimizer.step()
+
+
+    # Old train function
+    def train_old(self):
+        # Sample replay batch
+        batch = random.sample(self.replay_buffer, self.replay_batch_size)
+
+        for state, action, reward, next_state in batch:
+            state = torch.tensor(state, dtype=torch.float32)
+            q_values = self.model(state)
+
+            # Next state is terminal state and target is the reward
+            if next_state is None:
+                target = reward
+            else:
+                next_state = torch.tensor(next_state, dtype=torch.float32)
+
+                # Get next state q-values from target network without autograd relationship
+                with torch.no_grad():
+                    next_state_q_values = self.target_model(next_state)
+                    target = reward + self.discount_factor * torch.max(next_state_q_values).item()
+
+            # Replace q_value of action taken with target q_value
+            target_q_values = q_values.clone().detach()
+            target_q_values[action] = target
+
+            # Clear old gradients
+            self.optimizer.zero_grad()
+
+            # Calculate loss and update model
+            loss = self.loss_function(q_values, target_q_values)
+            loss.backward()
+            self.optimizer.step()
+
 
     
     def convert_action(self, action):

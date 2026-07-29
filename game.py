@@ -56,6 +56,10 @@ class Game:
         # Reward for RL agent
         self.reward = -0.05
 
+        # If head is on top of food, respawn food and increment growth queue
+        if self.inside_food(self.snake):
+            self.handle_food_eaten(self.snake)
+
         self.snake.move()
         
         if self.outside_game_window(self.snake) or self.snake.inside_itself():
@@ -63,9 +67,9 @@ class Game:
             self.done = True
             self.update_scores()
 
+        # Give the agent reward for moving on top of the food
         elif self.inside_food(self.snake):
             self.reward = 10
-            self.handle_food_eaten(self.snake)
     
     def reset_game(self):
         self.reset_snake()
