@@ -176,8 +176,8 @@ class Agent:
     
     def train(self):
         """
-        Experience replay batch training
-        Does one forward pass each for online network and target network,
+        Experience replay batch training with Double DQN
+        Does two forward passes for online network (current and next states) and one for the target network(next states),
         one backward pass and one Adam update per train() call with buffer of batch_size.
 
         Compared to old train method that did batch_size number of forward passes, backward passes
@@ -197,20 +197,22 @@ class Agent:
         states = torch.tensor(states, dtype=torch.float32)
         filtered_next_states = torch.tensor(filtered_next_states, dtype=torch.float32)
 
-        # Gets q_values from online and target network
+        # Current state q_values from online network
         q_values = self.model(states)
-        with torch.no_grad():
-            next_states_q_values = self.target_model(filtered_next_states)
-
-        
         target_q_values = q_values.clone().detach()
+
+        # Gets q_values for next state from both models to implement Double DQN
+        with torch.no_grad():
+            next_states_target_q_values = self.target_model(filtered_next_states)
+            next_states_online_q_values = self.model(filtered_next_states)
 
         filtered_next_states_index = 0
         for i, (action, reward, next_state) in enumerate(zip(actions, rewards, next_states)):
             if next_state is None:
                 target = reward
             else:
-                target = reward + self.discount_factor * torch.max(next_states_q_values[filtered_next_states_index]).item()
+                next_state_max_action = torch.argmax(next_states_online_q_values[filtered_next_states_index]).item()
+                target = reward + self.discount_factor * next_states_target_q_values[filtered_next_states_index][next_state_max_action].item()
                 filtered_next_states_index += 1
 
             target_q_values[i][action] = target

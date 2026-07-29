@@ -25,7 +25,7 @@ class Game:
     def handle_food_eaten(self, snake):
         snake.add_body_parts(1)
         self.score += 1
-        self.food = self.preset_food_position()
+        self.food = self.random_food_position()
 
     def reset_snake(self):
         self.snake = Snake(self.start_position(cfg.GAME_WINDOW_WIDTH), self.start_position(cfg.GAME_WINDOW_HEIGHT), "right")
