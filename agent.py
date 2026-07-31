@@ -226,7 +226,8 @@ class Agent:
         self.optimizer.step()
 
 
-    # Old train function
+    # Old train function, not used
+    # Keeping for conceptual understanding
     def train_old(self):
         # Sample replay batch
         batch = random.sample(self.replay_buffer, self.replay_batch_size)
