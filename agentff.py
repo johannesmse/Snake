@@ -28,7 +28,7 @@ class SnakeNet(nn.Module):
         return self.network(x)
 
 
-class Agent:
+class AgentFF:
     def __init__(self, game):
         self.game = game
         self.snake = self.game.snake

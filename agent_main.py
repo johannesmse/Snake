@@ -2,7 +2,7 @@ import pygame
 import config as cfg
 from ui import UI
 from game import Game
-from agent import Agent
+from agentff import AgentFF
 import time
 
 pygame.init()
@@ -10,7 +10,7 @@ pygame.display.set_caption("Snake")
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((cfg.WINDOW_WIDTH, cfg.WINDOW_HEIGHT))
 game = Game()
-agent = Agent(game)
+agent = AgentFF(game)
 game_ui = UI(screen, game, agent)
 
 game_ui.draw()
