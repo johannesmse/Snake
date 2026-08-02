@@ -264,6 +264,7 @@ class AgentFF:
     def convert_action(self, action):
         return self.action_map[self.snake.direction][action]
 
+    # Converts the 2D coordinate position x, y to an index in a flattened 1D list
     def convert_to_grid_number(self, x, y):
         grid_x = int(x / cfg.SNAKE_SIZE)
         grid_y = int(y / cfg.SNAKE_SIZE)

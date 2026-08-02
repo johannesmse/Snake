@@ -3,6 +3,7 @@ import config as cfg
 from ui import UI
 from game import Game
 from agentff import AgentFF
+from agentcnn import AgentCNN
 import time
 
 pygame.init()
@@ -10,8 +11,9 @@ pygame.display.set_caption("Snake")
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((cfg.WINDOW_WIDTH, cfg.WINDOW_HEIGHT))
 game = Game()
-agent = AgentFF(game)
-game_ui = UI(screen, game, agent)
+agent_ff = AgentFF(game)
+agent_cnn = AgentCNN(game)
+game_ui = UI(screen, game, agent_cnn)
 
 game_ui.draw()
 pygame.display.flip()
@@ -31,9 +33,9 @@ while running:
     # Train agent
     if game.done:
         game.reset_game()
-        agent.update_snake()
+        agent_cnn.update_snake()
     else:
-        agent.step()
+        agent_cnn.step()
 
     # Display snake and menu
     if game_ui.display_setting is not None:
